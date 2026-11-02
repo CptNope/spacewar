@@ -51,7 +51,7 @@
     topShare: true,
     settings: {
       tour: 'Twelve stops through reading, running, comparing and annotating; about three minutes.',
-      groupHint: 'Annotations are shared through the project’s private Hypothesis group, <b>edGMeapN</b> (set for you). Paste another group’s link or ID only to use a different one, and a personal API token (hypothes.is/account/developer). Without them, annotations are kept as drafts in this browser and can be exported or published later.',
+      groupHint: 'Annotations are shared through the project’s private Hypothesis group, <b>edGMeapN</b> (set for you). Help ▸ Getting set up takes you through joining it and your token. The group box below is only for using a different group. Without a token, annotations are kept as drafts in this browser and can be exported or published later.',
       groupPlaceholder: 'https://hypothes.is/groups/edGMeapN/spacewar',
       themeHint: 'The colours of the whole bench: listings, annotations, figures and tapes. The ◐ button in the top bar switches between your last light and dark themes. The scope in Run keeps the PDP-1’s own phosphor.'
     },
