@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#071018">
+  <meta name="description" content="Play the original 1962 Spacewar! PDP-1 game inside a Three.js 3D arcade museum exhibit.">
+  <title>Spacewar! — 3D Arcade Exhibit</title>
+  <style>
+    :root { color-scheme: dark; --cyan:#85f4ed; --amber:#f9ce88; --ink:#071018; --muted:#9cadb8; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; min-height:100%; background:var(--ink); color:#ebf9fa; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    body { overflow-x:hidden; }
+    a { color:var(--cyan); }
+    button { font:inherit; cursor:pointer; }
+    .app { min-height:100dvh; display:grid; grid-template-rows:auto minmax(460px,1fr) auto; }
+    header { position:relative; z-index:2; display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px 22px; align-items:center; padding:16px clamp(18px,3.5vw,56px); background:#08131be8; border-bottom:1px solid #22404a; }
+    .brand { display:flex; align-items:baseline; flex-wrap:wrap; gap:11px; }
+    .brand strong { font-size:clamp(19px,2.5vw,27px); font-weight:800; letter-spacing:.13em; color:var(--cyan); }
+    .brand span { font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+    nav { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+    nav a, nav button { border:1px solid #34545f; border-radius:7px; background:#10222b; padding:9px 13px; color:#e1f6f6; text-decoration:none; font-size:12px; font-weight:650; letter-spacing:.06em; }
+    nav a:hover,nav button:hover,nav button:focus-visible { border-color:var(--cyan); color:var(--cyan); }
+    .stage { position:relative; min-height:460px; background:radial-gradient(ellipse at 50% 35%, #123039, #03080c 75%); isolation:isolate; overflow:hidden; }
+    #scene { position:absolute; inset:0; }
+    #scene canvas { display:block; height:100%; width:100%; touch-action:none; }
+    #swcanvas { position:absolute; left:-9999px; top:-9999px; width:550px; height:550px; pointer-events:none; }
+    .eyebrow { position:absolute; z-index:1; top:23px; left:clamp(18px,3.5vw,56px); max-width:min(320px,70vw); pointer-events:none; }
+    .eyebrow b { font-size:11px; color:var(--amber); font-weight:700; letter-spacing:.25em; }
+    .eyebrow p { margin:8px 0 0; color:var(--muted); line-height:1.55; font-size:13px; }
+    .status { position:absolute; z-index:1; top:24px; right:clamp(18px,3.5vw,56px); text-align:right; pointer-events:none; font-size:11px; letter-spacing:.16em; color:var(--cyan); }
+    .status:before { content:""; display:inline-block; width:7px; height:7px; background:#8ce8a3; border-radius:50%; box-shadow:0 0 12px #8ce8a3; margin-right:8px; }
+    .hint { position:absolute; bottom:15px; left:50%; transform:translateX(-50%); text-align:center; font-size:11px; color:#b1c7ce; letter-spacing:.1em; pointer-events:none; width:95%; }
+    .touch { display:none; position:absolute; inset:auto 12px 46px; z-index:5; justify-content:space-between; gap:8px; }
+    .pad { min-width:0; display:grid; grid-template-columns:repeat(2,minmax(58px,88px)); gap:6px; }
+    .pad-label { grid-column:1 / -1; color:var(--amber); font-size:11px; letter-spacing:.2em; font-weight:750; text-align:center; text-shadow:0 1px 5px #000; }
+    .pad button { min-height:48px; padding:5px 3px; color:#efffff; background:#0c2b39d9; border:1px solid #4e7a85; border-radius:9px; font-size:11px; font-weight:800; letter-spacing:.04em; touch-action:none; user-select:none; -webkit-user-select:none; }
+    .pad button.down { color:#071018; background:#8af1e6; border-color:#e9ffff; box-shadow:0 0 17px #80fff750; }
+    footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:16px clamp(18px,3.5vw,56px) 20px; border-top:1px solid #22404a; background:#071018; }
+    footer p { margin:0; color:#a8bec7; font-size:12px; line-height:1.8; }
+    kbd { display:inline-block; border:1px solid #35515d; border-bottom-width:2px; border-radius:4px; padding:1px 5px; font:inherit; font-weight:750; color:#e7fbfc; }
+    .error { display:none; position:absolute; z-index:6; inset:24% 12% auto; border:1px solid #b57e5b; border-radius:12px; background:#0d1821; padding:20px; text-align:center; }
+    .error.visible { display:block; }
+    @media (pointer:coarse) {
+      .touch { display:flex; }
+      .hint { display:none; }
+      .eyebrow p { display:none; }
+      .stage { min-height:560px; }
+      .app { grid-template-rows:auto minmax(560px,1fr) auto; }
+    }
+    @media (max-width:700px) {
+      header { padding:11px 15px; }
+      .brand strong { font-size:18px; }
+      .brand span { font-size:10px; letter-spacing:.1em; }
+      nav { gap:6px; }
+      nav a, nav button { padding:7px 8px; font-size:11px; }
+      .eyebrow { top:12px; left:14px; }
+      .eyebrow b { font-size:9px; letter-spacing:.12em; }
+      .status { top:13px; right:14px; font-size:9px; letter-spacing:.07em; }
+      footer { padding:12px 14px; }
+    }
+    @media (pointer:coarse) and (orientation:landscape) {
+      .stage,.app { min-height:320px; }
+      .app { grid-template-rows:auto minmax(320px,1fr) auto; }
+      .touch { inset:auto 18px 10px; }
+      .pad { grid-template-columns:repeat(2,58px); }
+      .pad button { min-height:36px; font-size:9px; }
+      .pad-label { font-size:9px; }
+    }
+    @media (prefers-reduced-motion:reduce) { * { scroll-behavior:auto; } }
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script src="spacewar.js"></script>
+  <script src="spacewar.bin.js"></script>
+  <script type="module" src="arcade/scene.js"></script>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><strong>SPACEWAR!</strong><span>Playable museum · 1962 / 3D edition</span></div>
+    <nav aria-label="Exhibit navigation">
+      <a href="play.html">Original 2D game</a>
+      <a href="./">Project home</a>
+      <button type="button" id="reset">Restart</button>
+      <button type="button" id="fullscreen">Full screen</button>
+    </nav>
+  </header>
+  <main class="stage" id="stage" aria-label="3D arcade cabinet with the live Spacewar game">
+    <div id="scene" aria-hidden="true"></div>
+    <canvas id="swcanvas" width="550" height="550" aria-hidden="true"></canvas>
+    <div class="eyebrow"><b>THE ORIGINAL GAME, INSIDE THE MACHINE</b><p>Real PDP-1 emulation projected onto a Three.js CRT screen. Drag to inspect the cabinet.</p></div>
+    <div class="status" role="status" id="status">BOOTING PDP-1</div>
+    <div class="hint">PLAYER 1 <kbd>W</kbd> thrust · <kbd>A</kbd><kbd>D</kbd> rotate · <kbd>S</kbd> fire &nbsp; | &nbsp; PLAYER 2 <kbd>I</kbd> thrust · <kbd>J</kbd><kbd>L</kbd> rotate · <kbd>K</kbd> fire</div>
+    <div class="touch" aria-label="On-screen two-player controls">
+      <div class="pad" aria-label="Player one">
+        <span class="pad-label">SHIP ONE</span>
+        <button data-bit="4" type="button" aria-label="Player one rotate left">↶ TURN</button>
+        <button data-bit="8" type="button" aria-label="Player one rotate right">TURN ↷</button>
+        <button data-bit="1" type="button" aria-label="Player one thrust">THRUST</button>
+        <button data-bit="2" type="button" aria-label="Player one fire">FIRE</button>
+      </div>
+      <div class="pad" aria-label="Player two">
+        <span class="pad-label">SHIP TWO</span>
+        <button data-bit="65536" type="button" aria-label="Player two rotate left">↶ TURN</button>
+        <button data-bit="262144" type="button" aria-label="Player two rotate right">TURN ↷</button>
+        <button data-bit="16384" type="button" aria-label="Player two thrust">THRUST</button>
+        <button data-bit="32768" type="button" aria-label="Player two fire">FIRE</button>
+      </div>
+    </div>
+    <div class="error" role="alert" id="error">This exhibit needs a browser with WebGL support. <a href="play.html">Play the original 2D version instead.</a></div>
+  </main>
+  <footer>
+    <p>1962 Spacewar! · Original PDP-1 code and browser emulator · Three.js exhibit</p>
+    <p>Ships, thrust, shots, gravity and hyperspace come from the original emulated game. <a href="README.md">Source and credits</a></p>
+  </footer>
+</div>
+<noscript><p style="padding:16px">JavaScript is required. <a href="play.html">Open the original game</a>.</p></noscript>
+</body>
+</html>
